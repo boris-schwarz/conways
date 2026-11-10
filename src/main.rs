@@ -3,18 +3,19 @@ use std::time::Duration;
 
 fn main() {
     const SIZE: usize = 20;
+    const LAST: usize = SIZE - 1;
     const RUNS: u8 = 120;
-    const INTERVAL: Duration = Duration::from_millis(200);
+    const INTERVAL: Duration = Duration::from_millis(120);
     let mut active: u8 = 1;
     let mut grid_1: [[u8; SIZE]; SIZE] = generate_grid();
     let mut grid_2 = grid_1.clone();
 
-    print!("{esc}c", esc = 27 as char);
+    clear();
     render_grid(&grid_1, &0);
 
     for r in 1..RUNS + 1 {
         sleep(INTERVAL);
-        print!("{esc}c", esc = 27 as char);
+        clear();
         if active % 2 == 1 {
             // println!("calculating off of grid 1, rendering grid 2...");
             calculate_next_grid(&grid_1, &mut grid_2);
@@ -28,6 +29,10 @@ fn main() {
         }
     }
 
+    fn clear() {
+        print!("{esc}c", esc = 27 as char);
+    }
+
     fn calculate_next_grid(current_grid: &[[u8; SIZE]; SIZE], next_grid: &mut [[u8; SIZE]; SIZE]) {
         for y in 0..SIZE {
             for x in 0..SIZE {
@@ -35,57 +40,48 @@ fn main() {
                 let cell = current_grid[y][x];
                 // print!("{x}:{y} = {cell}\t");
 
+                let y_n: usize = if y > 0 { y - 1 } else { LAST };
+                let x_e: usize = if x < LAST { x + 1 } else { 0 };
+                let y_s: usize = if y < LAST { y + 1 } else { 0 };
+                let x_w: usize = if x > 0 { x - 1 } else { LAST };
+
                 // check north
-                if y > 0 && current_grid[y - 1][x] == 1 || y == 0 && current_grid[SIZE - 1][x] == 1
-                {
+                if current_grid[y_n][x] == 1 {
                     neighbours = neighbours + 1;
                 }
 
-                // check north-east TODO correct this to check all wrapping neighbours
-                if y > 0 && x < SIZE - 1 && current_grid[y - 1][x + 1] == 1
-                    || y == 0 && x == SIZE - 1 && current_grid[SIZE - 1][0] == 1
-                {
+                // check north-east
+                if current_grid[y_n][x_e] == 1 {
                     neighbours = neighbours + 1;
                 }
 
                 // check east
-                if x < SIZE - 1 && current_grid[y][x + 1] == 1
-                    || x == SIZE - 1 && current_grid[y][0] == 1
-                {
+                if current_grid[y][x_e] == 1 {
                     neighbours = neighbours + 1;
                 }
 
-                // check south-east TODO correct this to check all wrapping neighbours
-                if y < SIZE - 1 && x < SIZE - 1 && current_grid[y + 1][x + 1] == 1
-                    || y == SIZE - 1 && x == SIZE - 1 && current_grid[0][0] == 1
-                {
+                // check south-east
+                if current_grid[y_s][x_e] == 1 {
                     neighbours = neighbours + 1;
                 }
 
                 // check south
-                if y < SIZE - 1 && current_grid[y + 1][x] == 1
-                    || y == SIZE - 1 && current_grid[0][x] == 1
-                {
+                if current_grid[y_s][x] == 1 {
                     neighbours = neighbours + 1;
                 }
 
-                // check south-west TODO correct this to check all wrapping neighbours
-                if y < SIZE - 1 && x > 0 && current_grid[y + 1][x - 1] == 1
-                    || y == SIZE - 1 && x == 0 && current_grid[0][SIZE - 1] == 1
-                {
+                // check south-west
+                if current_grid[y_s][x_w] == 1 {
                     neighbours = neighbours + 1;
                 }
 
                 // check west
-                if x > 0 && current_grid[y][x - 1] == 1 || x == 0 && current_grid[y][SIZE - 1] == 1
-                {
+                if current_grid[y][x_w] == 1 {
                     neighbours = neighbours + 1;
                 }
 
-                // check north-west TODO correct this to check all wrapping neighbours
-                if y > 0 && x > 0 && current_grid[y - 1][x - 1] == 1
-                    || y == 0 && x == 0 && current_grid[SIZE - 1][SIZE - 1] == 1
-                {
+                // check north-west
+                if current_grid[y_n][x_w] == 1 {
                     neighbours = neighbours + 1;
                 }
 
@@ -110,7 +106,6 @@ fn main() {
                  * Reproduction: Any dead cell with exactly three live neighbors becomes a live cell.
                  */
             }
-            // println!("");
         }
     }
 
@@ -119,9 +114,9 @@ fn main() {
         for row in grid {
             for cell in row {
                 match cell {
-                    0 => print!(" "),
-                    1 => print!("█"),
-                    _ => print!("_"),
+                    0 => print!("  "),
+                    1 => print!("██"),
+                    _ => print!("__"),
                 };
             }
             println!("");

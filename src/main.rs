@@ -1,11 +1,9 @@
 use macroquad::prelude::*;
-use std::thread::sleep;
 use std::time::Duration;
 
 const SIZE: usize = 400;
 const CELL_SIZE: f32 = 2.0;
 const LAST: usize = SIZE - 1;
-// const RUNS: usize = 10_000_000;
 const INTERVAL: Duration = Duration::from_millis(40);
 
 type Row = [u8; SIZE];
@@ -17,59 +15,41 @@ async fn main() {
     let mut grid_1: Grid = generate_grid();
     let mut grid_2: Grid = grid_1.clone();
     let mut r: usize = 0;
+    let mut last_frame = get_time();
 
     request_new_screen_size(SIZE as f32 * CELL_SIZE, SIZE as f32 * CELL_SIZE);
-    render_graphical_grid(&grid_1, &0);
 
     loop {
+        let current_frame = get_time();
+        let delta = current_frame - last_frame;
         clear_background(BLACK);
 
-        sleep(INTERVAL);
-        //clear();
-        if active % 2 == 1 {
-            // println!("calculating off of grid 1, rendering grid 2...");
-            calculate_next_grid(&grid_1, &mut grid_2);
-            render_graphical_grid(&grid_2, &r);
-            active = 2;
-        } else {
-            // println!("calculating off of grid 2, rendering grid 1...");
-            calculate_next_grid(&grid_2, &mut grid_1);
-            render_graphical_grid(&grid_1, &r);
-            active = 1;
+        if delta >= INTERVAL.as_secs_f64() {
+            if active == 1 {
+                calculate_next_grid(&grid_1, &mut grid_2);
+                active = 2;
+            } else {
+                calculate_next_grid(&grid_2, &mut grid_1);
+                active = 1;
+            }
+            r = r + 1;
+            last_frame = current_frame;
         }
-        r = r + 1;
+
+        if active == 1 {
+            render_graphical_grid(&grid_1, &r);
+        } else {
+            render_graphical_grid(&grid_2, &r);
+        }
+
         next_frame().await
     }
-
-    /* clear();
-
-
-    for r in 1..RUNS + 1 {
-        sleep(INTERVAL);
-        clear();
-        if active % 2 == 1 {
-            // println!("calculating off of grid 1, rendering grid 2...");
-            calculate_next_grid(&grid_1, &mut grid_2);
-            render_grid(&grid_2, &r);
-            active = 2;
-        } else {
-            // println!("calculating off of grid 2, rendering grid 1...");
-            calculate_next_grid(&grid_2, &mut grid_1);
-            render_grid(&grid_1, &r);
-            active = 1;
-        }
-    } */
-
-    /* fn clear() {
-        print!("{esc}c", esc = 27 as char);
-    } */
 
     fn calculate_next_grid(current_grid: &Grid, next_grid: &mut Grid) {
         for y in 0..SIZE {
             for x in 0..SIZE {
                 let mut neighbours: u8 = 0;
                 let cell = current_grid[y][x];
-                // print!("{x}:{y} = {cell}\t");
 
                 let y_n: usize = if y > 0 { y - 1 } else { LAST };
                 let x_e: usize = if x < LAST { x + 1 } else { 0 };
@@ -77,51 +57,34 @@ async fn main() {
                 let x_w: usize = if x > 0 { x - 1 } else { LAST };
 
                 // check north
-                if current_grid[y_n][x] == 1 {
-                    neighbours = neighbours + 1;
-                }
+                neighbours = neighbours + current_grid[y_n][x];
 
                 // check north-east
-                if current_grid[y_n][x_e] == 1 {
-                    neighbours = neighbours + 1;
-                }
+                neighbours = neighbours + current_grid[y_n][x_e];
 
                 // check east
-                if current_grid[y][x_e] == 1 {
-                    neighbours = neighbours + 1;
-                }
+                neighbours = neighbours + current_grid[y][x_e];
 
                 // check south-east
-                if current_grid[y_s][x_e] == 1 {
-                    neighbours = neighbours + 1;
-                }
+                neighbours = neighbours + current_grid[y_s][x_e];
 
                 // check south
-                if current_grid[y_s][x] == 1 {
-                    neighbours = neighbours + 1;
-                }
+                neighbours = neighbours + current_grid[y_s][x];
 
                 // check south-west
-                if current_grid[y_s][x_w] == 1 {
-                    neighbours = neighbours + 1;
-                }
+                neighbours = neighbours + current_grid[y_s][x_w];
 
                 // check west
-                if current_grid[y][x_w] == 1 {
-                    neighbours = neighbours + 1;
-                }
+                neighbours = neighbours + current_grid[y][x_w];
 
                 // check north-west
-                if current_grid[y_n][x_w] == 1 {
-                    neighbours = neighbours + 1;
-                }
+                neighbours = neighbours + current_grid[y_n][x_w];
 
-                // print!("({neighbours})\t\t");
                 // alive cell actions
                 if cell == 1 {
                     match neighbours {
                         2 | 3 => next_grid[y][x] = 1,
-                        0 | 1 | _ => next_grid[y][x] = 0,
+                        _ => next_grid[y][x] = 0,
                     }
                 // dead cell actions
                 } else {
@@ -160,21 +123,6 @@ async fn main() {
         draw_text(format!("{r}"), 0.0, screen_height(), 20.0, RED);
         //println!("{r}/{RUNS}");
     }
-
-    /* fn render_grid(grid: &Grid, r: &usize) {
-        // println!("Rendering grid {grid:?}");
-        for row in grid {
-            for cell in row {
-                match cell {
-                    0 => print!("  "),
-                    1 => print!("██"),
-                    _ => print!("__"),
-                };
-            }
-            println!("");
-        }
-        println!("{r}/{RUNS}");
-    } */
 
     fn generate_grid() -> Grid {
         let mut grid: Grid = [[0; SIZE]; SIZE];

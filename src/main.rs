@@ -2,33 +2,47 @@ use macroquad::prelude::*;
 use std::thread::sleep;
 use std::time::Duration;
 
-const SIZE: usize = 20;
+const SIZE: usize = 400;
+const CELL_SIZE: f32 = 2.0;
+const LAST: usize = SIZE - 1;
+// const RUNS: usize = 10_000_000;
+const INTERVAL: Duration = Duration::from_millis(40);
+
 type Row = [u8; SIZE];
 type Grid = [Row; SIZE];
 
-#[macroquad::main("MyGame")]
+#[macroquad::main("Conways")]
 async fn main() {
-    const SIZE: usize = 20;
-    const LAST: usize = SIZE - 1;
-    const RUNS: u8 = 120;
-    const INTERVAL: Duration = Duration::from_millis(120);
     let mut active: u8 = 1;
     let mut grid_1: Grid = generate_grid();
     let mut grid_2: Grid = grid_1.clone();
+    let mut r: usize = 0;
+
+    request_new_screen_size(SIZE as f32 * CELL_SIZE, SIZE as f32 * CELL_SIZE);
+    render_graphical_grid(&grid_1, &0);
 
     loop {
-        clear_background(RED);
+        clear_background(BLACK);
 
-        draw_line(40.0, 40.0, 100.0, 200.0, 15.0, BLUE);
-        draw_rectangle(screen_width() / 2.0 - 60.0, 100.0, 120.0, 60.0, GREEN);
-
-        draw_text("Hello, Macroquad!", 20.0, 20.0, 30.0, DARKGRAY);
-
+        sleep(INTERVAL);
+        //clear();
+        if active % 2 == 1 {
+            // println!("calculating off of grid 1, rendering grid 2...");
+            calculate_next_grid(&grid_1, &mut grid_2);
+            render_graphical_grid(&grid_2, &r);
+            active = 2;
+        } else {
+            // println!("calculating off of grid 2, rendering grid 1...");
+            calculate_next_grid(&grid_2, &mut grid_1);
+            render_graphical_grid(&grid_1, &r);
+            active = 1;
+        }
+        r = r + 1;
         next_frame().await
     }
 
-    clear();
-    render_grid(&grid_1, &0);
+    /* clear();
+
 
     for r in 1..RUNS + 1 {
         sleep(INTERVAL);
@@ -44,11 +58,11 @@ async fn main() {
             render_grid(&grid_1, &r);
             active = 1;
         }
-    }
+    } */
 
-    fn clear() {
+    /* fn clear() {
         print!("{esc}c", esc = 27 as char);
-    }
+    } */
 
     fn calculate_next_grid(current_grid: &Grid, next_grid: &mut Grid) {
         for y in 0..SIZE {
@@ -126,7 +140,28 @@ async fn main() {
         }
     }
 
-    fn render_grid(grid: &Grid, r: &u8) {
+    fn render_graphical_grid(grid: &Grid, r: &usize) {
+        for y in 0..SIZE {
+            for x in 0..SIZE {
+                let color = match grid[y][x] {
+                    0 => BLACK,
+                    1 => LIGHTGRAY,
+                    _ => RED,
+                };
+                draw_rectangle(
+                    x as f32 * CELL_SIZE,
+                    y as f32 * CELL_SIZE,
+                    CELL_SIZE,
+                    CELL_SIZE,
+                    color,
+                );
+            }
+        }
+        draw_text(format!("{r}"), 0.0, screen_height(), 20.0, RED);
+        //println!("{r}/{RUNS}");
+    }
+
+    /* fn render_grid(grid: &Grid, r: &usize) {
         // println!("Rendering grid {grid:?}");
         for row in grid {
             for cell in row {
@@ -139,7 +174,7 @@ async fn main() {
             println!("");
         }
         println!("{r}/{RUNS}");
-    }
+    } */
 
     fn generate_grid() -> Grid {
         let mut grid: Grid = [[0; SIZE]; SIZE];
@@ -152,7 +187,7 @@ async fn main() {
     fn generate_row() -> Row {
         let mut row: Row = [0; SIZE];
         for i in 0..SIZE {
-            row[i] = match ::rand::random_bool(0.5) {
+            row[i] = match ::rand::random_bool(0.25) {
                 true => 1,
                 false => 0,
             };
